@@ -16,7 +16,7 @@ async function GetAiVoice(chatId: number, text: string): Promise<void> {
     }
 
     const data = await response.json();
-    const audioUrl = data.audio; 
+    const audioUrl = data.audio_url; 
 
     if (!audioUrl) {
       throw new Error("No audio URL found in the TTS API response.");
