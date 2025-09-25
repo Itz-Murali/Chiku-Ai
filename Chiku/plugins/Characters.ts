@@ -29,9 +29,18 @@ async function GetCharacterImages(message: any): Promise<void> {
 
     
     const html = await response.text();
-    const imgTags = Array.from(html.matchAll(/<img [^>]*data-src="([^"]+)"[^>]*>/g));
-    let srcList = imgTags.map((match) => match[1]);
+    const imgTags = Array.from(
+      html.matchAll(/<img[^>]+(?:data-src|src)="([^"]+)"/gi)
+);
 
+    let srcList = imgTags.map((m) => m[1]);
+    srcList = srcList.map((url) =>
+      url.startsWith("//") ? "https:" + url : url
+);
+
+    srcList = srcList.filter((url) =>
+  /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url)
+);
     srcList = srcList.slice(10);
 
     const uniqueImages = [...new Set(srcList)];
