@@ -42,6 +42,7 @@ async function GetCharacterImages(message: any): Promise<void> {
     });
 
     const html = await response.text();
+    console.log(html);
 
     let imgTags: RegExpMatchArray[] = [];
     try {
