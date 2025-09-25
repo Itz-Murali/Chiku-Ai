@@ -9,8 +9,8 @@ async function generateImage(chatId: number, prompt: string): Promise<void> {
 
   try {
     const response = await fetch(
-      `https://death-image.ashlynn.workers.dev/?prompt=${encodeURIComponent(prompt)}&image=1&dimensions=square&safety=true`
-    );
+      `https://death-image.ashlynn.workers.dev/generate?prompt={encodeURIComponent(prompt)}&image=1&dimensions=3:4&safety=true`;
+      );
 
     
 
