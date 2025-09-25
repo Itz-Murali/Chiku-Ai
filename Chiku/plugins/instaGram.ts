@@ -22,7 +22,13 @@ async function DownloadInstaVdo(message: any): Promise<void> {
     const data = await response.json();
 
     if (data["error"]) throw new Error("⚠️ Could not process the URL. Ensure it's a valid Instagram URL.");
-    const title = data["title"] || "Unknown Title";
+    const rawTitle: string = data["title"] || "Unknown Title";
+    const title = rawTitle
+  .replace(/[#_]+/g, " ")          
+  .replace(/&#\w+;/g, " ")         
+  .replace(/[^\w\s-]/g, " ")       
+  .replace(/\s+/g, " ")            
+  .trim();
     const videos = data["videos"] || [];
 
     if (videos.length === 0) throw new Error("🚫 No videos found in the provided URL.");
