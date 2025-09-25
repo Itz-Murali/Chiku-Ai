@@ -42,6 +42,7 @@ async function GetCharacterImages(message: any): Promise<void> {
   /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url)
 );
     srcList = srcList.slice(10);
+    console.log(srcList);
 
     const uniqueImages = [...new Set(srcList)];
 
