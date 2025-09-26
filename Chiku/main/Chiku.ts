@@ -157,11 +157,16 @@ class ChikuAi {
 
   static async send_audio(chatId: number, audioUrl: string): Promise<void> {
     await fetch(TgApi("sendAudio"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, audio: audioUrl }),
-    });
-  }
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      audio: audioUrl,
+      title: "Chiku Ai",
+      performer: "Chiku Ai",
+    }),
+  });
+}
 
   static async TypingAction(chatId: number): Promise<void> {
     await fetch(TgApi("sendChatAction", { chat_id: chatId, action: "typing" }));
