@@ -1,6 +1,6 @@
 # 🌟 Welcome To **Chiku-Ai**: The Future Of Artificial Intelligence 🌟  
 
-![Chiku-Ai](https://i.imgur.com/tixAOb4.jpeg)  
+![Neko Image](https://api-ping-system.itz-murali.workers.dev/random.png?cache_bypass=${Date.now()})
 
 ---
 
