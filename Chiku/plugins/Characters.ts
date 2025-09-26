@@ -23,14 +23,21 @@ async function GetCharacterImages(message: any): Promise<void> {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, Like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
       },
     });
 
     
     const html = await response.text();
-    const imgTags = Array.from(html.matchAll(/<img [^>]*src="([^"]+)"[^>]*>/g));
+    
+    const imgTags = Array.from(html.matchAll(/<img [^>]*(?:data-src|data-url)="([^"]+)"[^>]*>/g));
+
+
+
     let srcList = imgTags.map((match) => match[1]);
+
+
+    console.log(srcList);
 
     srcList = srcList.slice(10);
 

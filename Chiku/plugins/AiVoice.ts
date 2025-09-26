@@ -8,8 +8,7 @@ async function GetAiVoice(chatId: number, text: string): Promise<void> {
     const X = await ChikuAi.send_message(chatId, "Generating Artificial Intelligence Voice For Your Text🔊..");
      const Id = X.result?.message_id;
     const encodedText = encodeURIComponent(text);
-    const ttsApiUrl = `https://advanced-tts.darkhacker7301.workers.dev/?message=${encodedText}&voice=en-US-Wavenet-C&type=url`;
-
+    const ttsApiUrl = `https://advanced-tts.darkhacker7301.workers.dev/?action=create&text=${encodedText}&voice=Aditi&type=url`;
 
     const response = await fetch(ttsApiUrl);
     if (!response.ok) {
@@ -17,7 +16,7 @@ async function GetAiVoice(chatId: number, text: string): Promise<void> {
     }
 
     const data = await response.json();
-    const audioUrl = data.audio; 
+    const audioUrl = data.audio_url; 
 
     if (!audioUrl) {
       throw new Error("No audio URL found in the TTS API response.");
