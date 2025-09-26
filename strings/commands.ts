@@ -9,6 +9,8 @@ Experience Innovative Responses With The Mixtral AI.
 
 *🌟 /claud <Your Question>*  
 Discover Accurate And Insightful Answers With The Claud AI.
+
+*Note:* This Commands Are Not Working Due To Api Problems 
 `;
 
 export const Funs = `
