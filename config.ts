@@ -3,7 +3,7 @@ const BOT_USERNAME = "Your_Bot_Username"; // Bot username without @
 const SUPPORT_GROUP = "ChikuBots"; // Support Group/Channel username without @
 const OWNER_USERNAME = "MysticSyntax"; // Your Telegram Username Without @
 const LOG_GROUP_ID = "-1002297624144"; // Your Log Group Id For Recieving Admin Messages ( Must Make The Bot Admin In Log Group );
-const BOT_TOKEN: string = "8241733864:AAGNdrTcET-9amqJ9MNVGYOtOSKpZZjTf2E"; // Your Bot Token
+const BOT_TOKEN: string = "Bot_Toeken"; // Your Bot Token
 
 
 
