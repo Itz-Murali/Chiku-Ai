@@ -276,23 +276,47 @@ ChikuAi.on_command("/dare", async (message: any) => {
                    );
 
 
-/*
+
+
+async function GetFact(): Promise<string> {
+  try {
+    const response = await fetch("https://uselessfacts.jsph.pl/random.json?language=en");
+    if (!response.ok) {
+      throw new Error(`API responded with status ${response.status}`);
+    }
+    const data = await response.json();
+
+    if (data && data.text) {
+      return data.text;
+    } else {
+      throw new Error("No fact found in API response");
+    }
+  } catch (error) {
+    console.error("Error fetching fact:", error);
+    throw error; 
+  }
+}
+
+
 ChikuAi.on_command("/fact", async (message: any) => {
   const chatId = message.chat.id;
   try {
-    const factText = GetFact(); // Fetch the fact text
-    await ChikuAi.send_message(chatId, `🧠 *Did You Know?* 🌟\n\n${factText}\n\n✨ *Stay curious and keep learning!* 💡`, {
-      parse_mode: "Markdown",
-    });
+    const factText = await GetFact();
+
+    await ChikuAi.send_message(
+      chatId,
+      `🧠 *Did You Know?* 🌟\n\n${factText}\n\n✨ *Stay curious and keep learning!* 💡`,
+      { parse_mode: "Markdown" }
+    );
   } catch (error) {
     console.error("Error handling /fact command:", error);
-    await ChikuAi.send_message(chatId, "❌ *Oops! Couldn't fetch a fact. Please try again later.*", {
-      
-    });
+    await ChikuAi.send_message(
+      chatId,
+      "❌ *Oops! Couldn't fetch a fact. Please try again later.*",
+      { parse_mode: "Markdown" }
+    );
   }
 });
-
-**/
 
 
 
