@@ -1,9 +1,9 @@
 // PUT YOUR VARIEBLES HERE IN ""
-const BOT_USERNAME = "Your_Bot_Username"; // Bot username without @
+const BOT_USERNAME = "NeeAiBot"; // Bot username without @
 const SUPPORT_GROUP = "ChikuBots"; // Support Group/Channel username without @
 const OWNER_USERNAME = "MysticSyntax"; // Your Telegram Username Without @
 const LOG_GROUP_ID = "-1002297624144"; // Your Log Group Id For Recieving Admin Messages ( Must Make The Bot Admin In Log Group );
-const BOT_TOKEN: string = "Bot_Toeken"; // Your Bot Token
+const BOT_TOKEN: string = "7785153990:AAG86Ljaa_zeyGjD-MCWDHxLnWz8jVPgPIQ"; // Your Bot Token
 
 
 
