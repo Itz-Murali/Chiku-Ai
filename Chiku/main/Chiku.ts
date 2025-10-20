@@ -72,7 +72,7 @@ class ChikuAi {
         chat_id: chatId,
         text,
         parse_mode: "Markdown",
-        message_effect_id: randomEffectId,
+     //   message_effect_id: randomEffectId,
       })
     );
 
