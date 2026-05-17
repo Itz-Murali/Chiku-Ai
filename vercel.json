@@ -29,6 +29,8 @@
     },
     { "handle": "filesystem" },
     {
-      "src": "/(.   "s {
-      "src": "/(.   "s {
- ttttt/ttttttttttty
+      "src": "/(.*)",
+      "dest": "/public/index.html"
+    }
+  ]
+}
