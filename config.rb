@@ -21,7 +21,6 @@
 
 
 
-
 TOKEN = ENV['TOKEN']
 
 BOT_ID = TOKEN.split(':').first.to_i
