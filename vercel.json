@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "Chiku/bot.rb",
+      "use": "@vercel/ruby"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/?",
+      "dest": "/Chiku/bot.rb"
+    },
+    {
+      "src": "/a.png",
+      "dest": "/public/a.png"
+    },
+    {
+      "src": "/m.png",
+      "dest": "/public/m.png"
+    },
+    {
+      "src": "/ShortBaby.ttf",
+      "dest": "/public/ShortBaby.ttf"
+    },
+    { "handle": "filesystem" },
+    {
+      "src": "/(.   "s {
+      "src": "/(.   "s {
+ ttttt/ttttttttttty
