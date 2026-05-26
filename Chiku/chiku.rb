@@ -214,19 +214,23 @@ class Chiku
   def self.send_media_group(chat_id, urls, captions = nil, reply_to = nil, parse_mode = 'HTML')
     urls  = Array(urls).first(10)
     media = urls.map.with_index do |url, i|
-      item    = { 'type' => 'photo', 'media' => url }
+      item    = { 'type' => 'photo', 'media' => url.to_s }
       caption = captions.is_a?(Array) ? (captions[i] || '') : (i == 0 ? captions.to_s : '')
-      unless caption.empty?
-        item['caption'] = caption; item['parse_mode'] = parse_mode
+      unless caption.to_s.empty?
+        item['caption']    = caption.to_s
+        item['parse_mode'] = parse_mode
       end
       item
     end
-    form = { 'chat_id' => chat_id.to_s, 'media' => JSON.dump(media) }
-    form['reply_to_message_id'] = reply_to.to_s if reply_to
+    payload = { 'chat_id' => chat_id.to_s, 'media' => media }
+    payload['reply_to_message_id'] = reply_to.to_s if reply_to
     uri = URI("https://api.telegram.org/bot#{TOKEN}/sendMediaGroup")
+    http = Net::HTTP.new(uri.hostname, uri.port)
+    http.use_ssl = true
     req = Net::HTTP::Post.new(uri)
-    req.set_form_data(form)
-    Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |h| h.request(req) }
+    req['Content-Type'] = 'application/json'
+    req.body = JSON.generate(payload)
+    http.request(req)
   rescue => e
     puts "⚠️  send_media_group: #{e.message}"; nil
   end
@@ -752,7 +756,9 @@ class Chiku
 
 
     when 'pinterest'
-      query = args[1]
+      # Rejoin with ':' to reconstruct URLs like https://pin.it/...
+      query = args[1..].join(':').strip
+      query = args[1].to_s if query.empty?
       if query && !query.empty?
         _run_pinterest(chat_id, query, reply_to)
         return [text_part, true]
@@ -1444,66 +1450,106 @@ Until next time~ 🌙",
     end
   end
 
+  # Detect if a string is a Pinterest URL (pin.it shortlink or full pinterest.com URL)
+  def self.pinterest_url?(str)
+    str.to_s.match?(/\A(https?:\/\/)?(www\.)?(pin\.it\/|pinterest\.com\/)/i)
+  end
+
   def self._run_pinterest(chat_id, query, reply_to)
+    is_url = pinterest_url?(query)
+
+    wait_text = is_url       ? "📌 <b>Fetching that Pinterest pin…</b>\n<i>One sec~ ✨</i>"       : "🔍 <b>Searching Pinterest for \"#{query}\"…</b>\n<i>Hang tight~ ✨</i>"
+
     wait_msg_id = begin
       res = tg_post('sendMessage', {
         'chat_id'    => chat_id.to_s,
-        'text'       => "🔍 <b>Searching Pinterest for \"#{query}\"…</b>\n<i>Hang tight~ ✨</i>",
+        'text'       => wait_text,
         'parse_mode' => 'HTML'
       }, reply_to)
       JSON.parse(res.body).dig('result', 'message_id') rescue nil
     end
 
-    
     begin
       encoded  = URI.encode_www_form_component(query)
-      api_uri  = URI("https://chiku-bots.vercel.app/Pinterest?query=#{encoded}")
+      api_uri  = URI("https://anya-apis.vercel.app/pinterest?query=#{encoded}")
       http     = Net::HTTP.new(api_uri.hostname, api_uri.port)
       http.use_ssl      = true
       http.open_timeout = 15
-      http.read_timeout = 25
+      http.read_timeout = 30
       response = http.get(api_uri.request_uri)
 
       delete_message(chat_id, wait_msg_id) if wait_msg_id
 
       unless response.code == '200'
-        send_message(chat_id, "pinterest API error #{response.code}~", reply_to)
+        send_message(chat_id, "❌ Pinterest API error #{response.code}~", reply_to)
         return
       end
 
-      urls = JSON.parse(response.body)['images'] || []
+      data = JSON.parse(response.body)
+      mode = data['mode']
 
-      if urls.empty?
+      # ── PIN mode: single pin URL was passed ────────────────────────────
+      if mode == 'pin'
+        title     = data['title'].to_s.strip
+        pin_url   = data['pin_url'].to_s
+        image_url = data['image_url'].to_s
+        video_url = data['video_url'].to_s
+
+        caption = "📌 <b>Pinterest Pin</b>\n"
+        caption += "📝 #{title}\n" unless title.empty?
+        caption += "\n🔗 <a href=\"#{pin_url}\">View on Pinterest</a>" unless pin_url.empty?
+        caption += "\n✨ <i>via Chiku~</i>"
+
+        if !video_url.empty? && video_url != 'null'
+          send_chat_action(chat_id, 'upload_video')
+          send_video(chat_id, video_url, caption, reply_to)
+        elsif !image_url.empty?
+          send_chat_action(chat_id, 'upload_photo')
+          send_photo(chat_id, image_url, caption, reply_to)
+        else
+          send_message(chat_id, "❌ couldn't find media in that pin~", reply_to)
+        end
+        return
+      end
+
+      # ── SEARCH mode: query string was passed ───────────────────────────
+      all_urls = (data['images'] || []).first(10)
+
+      if all_urls.empty?
         send_message(chat_id, "no results for \"#{query}\"~ 😔", reply_to)
         return
       end
 
-      group_res = send_media_group(chat_id, urls, nil, reply_to)
+      caption_first = "📌 <b>Pinterest</b> — #{query}\n<i>#{all_urls.size} images~</i>"
+
+      send_chat_action(chat_id, 'upload_photo')
+      group_res = send_media_group(chat_id, all_urls, [caption_first], reply_to)
       group_ok  = begin
         JSON.parse(group_res.body)['ok'] == true
       rescue
         false
       end
 
-      if group_ok
-        send_message(chat_id, "📌 #{urls.size} result#{urls.size == 1 ? '' : 's'} for <b>#{query}</b>~", reply_to)
-      else
-
-        urls.each_with_index do |url, i|
+      unless group_ok
+        # Fallback: send one by one
+        all_urls.each_with_index do |url, i|
           begin
             send_photo(chat_id, url,
-                       i == 0 ? "📌 <b>#{query}</b> (#{urls.size} results~)" : '',
+                       i == 0 ? caption_first : '',
                        reply_to, 'HTML')
-            sleep(0.4)
+            sleep(0.35)
           rescue => e
             puts "⚠️  pinterest individual send failed (#{i}): #{e.message}"
           end
         end
       end
 
+    rescue JSON::ParserError
+      delete_message(chat_id, wait_msg_id) if wait_msg_id
+      send_message(chat_id, "❌ Pinterest API returned invalid data~", reply_to)
     rescue => e
       delete_message(chat_id, wait_msg_id) if wait_msg_id
-      send_message(chat_id, "pinterest error: #{e.message.split(':').last.strip}", reply_to)
+      send_message(chat_id, "❌ Pinterest error: #{e.message.split(':').last.strip}", reply_to)
       puts "⚠️  _run_pinterest error: #{e.message}"
     end
   end
