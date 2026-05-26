@@ -669,6 +669,81 @@ Chiku.command '/pinterest', prefix: true do |params|
   Chiku._run_pinterest(params[:chat_id], query, params[:reply_to_id])
 end
 
+Chiku.command '/insta', prefix: true do |params|
+  url = params[:cleaned_text].sub(/^\/insta\s*/i, '').strip
+
+  if url.empty?
+    Chiku.send_message(
+      params[:chat_id],
+      "📸 <b>Instagram Downloader</b>\n\n" \
+      "<b>Usage:</b> <code>/insta &lt;instagram url&gt;</code>\n\n" \
+      "✨ <b>Examples:</b>\n" \
+      "• <code>/insta https://www.instagram.com/reel/DYxOFnGK-RS/</code>\n" \
+      "• <code>/insta https://www.instagram.com/p/ABC123/</code>\n\n" \
+      "Supports reels, posts &amp; photos~",
+      params[:reply_to_id]
+    )
+    next
+  end
+
+  unless url.match?(/instagram\.com\//i)
+    Chiku.send_message(params[:chat_id], "❌ That doesn't look like an Instagram link~\nSend a valid Instagram reel or post URL!", params[:reply_to_id])
+    next
+  end
+
+  Chiku.send_chat_action(params[:chat_id], 'upload_video')
+
+  begin
+    encoded  = URI.encode_www_form_component(url)
+    api_uri  = URI("https://anya-apis.vercel.app/insta?url=#{encoded}")
+    response = Net::HTTP.get_response(api_uri)
+    data     = JSON.parse(response.body)
+
+    unless data['status'] == true && data['data'].is_a?(Array) && !data['data'].empty?
+      Chiku.send_message(params[:chat_id], "❌ Couldn't fetch that Instagram link~\nMake sure it's a <b>public</b> post and try again!", params[:reply_to_id])
+      next
+    end
+
+    items = data['data']
+    count = items.length
+
+    items.each_with_index do |item, idx|
+      media_url = item['url'].to_s
+      thumb_url = item['thumbnail'].to_s
+
+      caption = "📸 <b>Instagram Media</b>#{count > 1 ? " (#{idx + 1}/#{count})" : ''}\n\n" \
+                "🔗 <a href=\"#{url}\">View on Instagram</a>\n" \
+                "✨ <i>Downloaded by Chiku~</i>"
+
+      if media_url.end_with?('.mp4')
+        Chiku.send_chat_action(params[:chat_id], 'upload_video')
+        Chiku.send_video(params[:chat_id], media_url, caption, params[:reply_to_id])
+      elsif media_url.match?(/\.(jpg|jpeg|png|webp)/i)
+        Chiku.send_chat_action(params[:chat_id], 'upload_photo')
+        Chiku.send_photo(params[:chat_id], media_url, caption, params[:reply_to_id])
+      elsif thumb_url.match?(/\.(jpg|jpeg|png|webp)/i)
+        Chiku.send_chat_action(params[:chat_id], 'upload_photo')
+        Chiku.send_photo(params[:chat_id], thumb_url, caption, params[:reply_to_id])
+      else
+        Chiku.send_message(
+          params[:chat_id],
+          "#{caption}\n\n📥 <a href=\"#{media_url}\">Direct Download</a>",
+          params[:reply_to_id]
+        )
+      end
+
+      sleep(0.4) if count > 1
+    end
+
+  rescue JSON::ParserError
+    Chiku.send_message(params[:chat_id], "❌ API returned invalid data~ Try again later!", params[:reply_to_id])
+  rescue => e
+    puts "⚠️  /insta error: #{e.class} #{e.message}"
+    Chiku.send_message(params[:chat_id], "❌ Something went wrong while downloading~", params[:reply_to_id])
+  end
+end
+
+
 Chiku.command '/imagine', prefix: true do |params|
   prompt = params[:cleaned_text].sub(/^\/imagine\s*/i, '').strip
   if prompt.empty?
