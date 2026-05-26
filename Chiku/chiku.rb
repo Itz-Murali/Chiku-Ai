@@ -198,9 +198,10 @@ class Chiku
     tmp&.unlink
   end
 
-  def self.send_video(chat_id, video, caption = '', reply_to = nil)
+  def self.send_video(chat_id, video, caption = '', reply_to = nil, parse_mode = 'HTML')
     tg_post('sendVideo', {
-      'chat_id' => chat_id.to_s, 'video' => video.to_s, 'caption' => caption.to_s
+      'chat_id' => chat_id.to_s, 'video' => video.to_s,
+      'caption' => caption.to_s, 'parse_mode' => parse_mode
     }, reply_to)
   end
 
@@ -807,6 +808,18 @@ class Chiku
       return [text_part, true]
 
 
+    when 'insta'
+      insta_url = args[1..].join(':').strip
+      insta_url = insta_url.empty? ? args[1].to_s : insta_url
+      if insta_url.match?(/instagram\.com\//i)
+        _run_insta(chat_id, insta_url, reply_to)
+        return [text_part, true]
+      else
+        send_message(chat_id, "send me the Instagram link and i'll download it~ 📸", reply_to)
+        return [text_part, true]
+      end
+
+
     when '8ball'
       question = args[1] || '...'
       answer   = EIGHTBALL_ANSWERS.sample
@@ -1381,6 +1394,53 @@ Until next time~ 🌙",
     rescue => e
       puts "⚠️  _run_pokemon error: #{e.class} #{e.message}"
       send_message(chat_id, "something went wrong fetching <b>#{name}</b>~ 😔", reply_to)
+    end
+  end
+
+
+  def self._run_insta(chat_id, url, reply_to = nil)
+    send_chat_action(chat_id, 'upload_video')
+    begin
+      encoded  = URI.encode_www_form_component(url)
+      api_uri  = URI("https://anya-apis.vercel.app/insta?url=#{encoded}")
+      response = Net::HTTP.get_response(api_uri)
+      data     = JSON.parse(response.body)
+
+      unless data['status'] == true && data['data'].is_a?(Array) && !data['data'].empty?
+        send_message(chat_id, "❌ couldn't download that~ make sure the post is public!", reply_to)
+        return
+      end
+
+      items = data['data']
+      count = items.length
+
+      items.each_with_index do |item, idx|
+        media_url = item['url'].to_s
+        thumb_url = item['thumbnail'].to_s
+
+        caption = "📸 <b>Instagram Media</b>#{count > 1 ? " (#{idx + 1}/#{count})" : ''}\n\n"                   "🔗 <a href=\"#{url}\">View on Instagram</a>\n"                   "✨ <i>Downloaded by Chiku~</i>"
+
+        if media_url.end_with?('.mp4')
+          send_chat_action(chat_id, 'upload_video')
+          send_video(chat_id, media_url, caption, reply_to)
+        elsif media_url.match?(/\.(jpg|jpeg|png|webp)/i)
+          send_chat_action(chat_id, 'upload_photo')
+          send_photo(chat_id, media_url, caption, reply_to)
+        elsif thumb_url.match?(/\.(jpg|jpeg|png|webp)/i)
+          send_chat_action(chat_id, 'upload_photo')
+          send_photo(chat_id, thumb_url, caption, reply_to)
+        else
+          send_message(chat_id, "#{caption}\n\n📥 <a href=\"#{media_url}\">Direct Download</a>", reply_to)
+        end
+
+        sleep(0.4) if count > 1
+      end
+
+    rescue JSON::ParserError
+      send_message(chat_id, "❌ API returned weird data~ try again later!", reply_to)
+    rescue => e
+      puts "⚠️  _run_insta error: #{e.class} #{e.message}"
+      send_message(chat_id, "❌ something went wrong downloading that~", reply_to)
     end
   end
 
