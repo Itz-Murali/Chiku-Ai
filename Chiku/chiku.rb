@@ -1088,6 +1088,9 @@ Until next time~ 🌙",
     <b>🎨 Create &amp; Search</b>
     /imagine &lt;prompt&gt; · /pinterest &lt;query&gt; · /pokemon &lt;name&gt;
 
+    <b>📥 Downloader</b>
+    /insta &lt;url&gt; — download Instagram reels &amp; posts
+
     <b>🌐 Info</b>
     /weather &lt;city&gt; · /quote · /fact · /joke
 
