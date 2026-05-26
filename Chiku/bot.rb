@@ -663,9 +663,22 @@ end
 
 Chiku.command '/pinterest', prefix: true do |params|
   query = params[:cleaned_text].sub(/^\/pinterest\s*/i, '').strip
+
   if query.empty?
-    Chiku.send_message(params[:chat_id], "Usage: /pinterest &lt;query&gt;", params[:reply_to_id]); next
+    Chiku.send_message(
+      params[:chat_id],
+      "📌 <b>Pinterest</b>\n\n" \
+      "<b>Usage:</b>\n" \
+      "• <code>/pinterest &lt;search query&gt;</code> — search images\n" \
+      "• <code>/pinterest &lt;pin.it or pinterest url&gt;</code> — fetch a specific pin\n\n" \
+      "✨ <b>Examples:</b>\n" \
+      "• <code>/pinterest anime sunset wallpaper</code>\n" \
+      "• <code>/pinterest https://pin.it/4zyIXnQbO</code>",
+      params[:reply_to_id]
+    )
+    next
   end
+
   Chiku._run_pinterest(params[:chat_id], query, params[:reply_to_id])
 end
 
