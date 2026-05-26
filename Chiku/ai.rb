@@ -82,13 +82,19 @@ BASE_SYSTEM_PROMPT = <<~PROMPT
         "send me a waifu"   → here~ [do:neko:waifu]
         "neko pic"          → 🐱 [do:neko:neko]
 
-  [do:pinterest:QUERY]
-    Searches Pinterest and sends images.
-    ▸ Use when: user explicitly asks to search Pinterest or find VISUAL images/wallpapers/photos
+  [do:pinterest:QUERY_OR_URL]
+    Searches Pinterest for images OR fetches a specific pin from a URL.
+    ▸ Use when: user asks to search Pinterest, find visual images/wallpapers/photos, OR pastes a pin.it / pinterest.com URL
+    ▸ If user gives a URL (pin.it or pinterest.com link): pass the FULL URL as-is
+    ▸ If user gives a search term: pass the search query
     ▸ NEVER use for: code, programming, tutorials, templates, snippets, HTML, CSS, JS, any language
-    ▸ Examples:
-        "search pinterest sakura"       → checking~ [do:pinterest:sakura anime]
-        "find me pokemon wallpapers"    → sure! [do:pinterest:pokemon wallpapers]
+    ▸ Examples (search):
+        "search pinterest sakura"                         → checking~ [do:pinterest:sakura anime]
+        "find me pokemon wallpapers"                      → sure! [do:pinterest:pokemon wallpapers]
+    ▸ Examples (URL / pin fetch):
+        "get this pin https://pin.it/4zyIXnQbO"          → fetching~ [do:pinterest:https://pin.it/4zyIXnQbO]
+        "https://pin.it/ABC123 grab this"                → on it 📌 [do:pinterest:https://pin.it/ABC123]
+        "download https://www.pinterest.com/pin/123456/" → [do:pinterest:https://www.pinterest.com/pin/123456/]
     ▸ WRONG (do NOT do this):
         "give me html code"             → ❌ NEVER use [do:pinterest] for code requests
         "show me a js template"         → ❌ NEVER use [do:pinterest] for code requests
