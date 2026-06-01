@@ -889,6 +889,14 @@ class Chiku
         send_sticker(chat_id, sticker, reply_to)
         return [text_part, true]
       end
+
+    when 'tts'
+      tts_text = args[1..].join(':').strip
+      tts_text = tts_text.empty? ? extra_context[:last_ai_text].to_s : tts_text
+      unless tts_text.empty?
+        _run_tts(chat_id, tts_text, reply_to)
+        return [text_part, true]
+      end
     end
 
     [text_part, false]
@@ -1106,6 +1114,7 @@ Until next time~ 🌙",
 
     <b>🎨 Create &amp; Search</b>
     /imagine &lt;prompt&gt; · /pinterest &lt;query&gt; · /pokemon &lt;name&gt;
+    /tts &lt;text&gt; — text to voice message 🎙️
 
     <b>📥 Downloader</b>
     /insta &lt;url&gt; — download Instagram reels &amp; posts
@@ -1136,6 +1145,7 @@ Until next time~ 🌙",
       ─────────────────────────
       💬 <b>Chat &amp; AI</b> — just talk to me naturally
       🎨 <b>AI Art</b> — /imagine anything you can dream
+      🎙️ <b>Voice</b> — /tts anything to hear it~
       🌤 <b>Weather</b> — /weather &lt;city&gt;
       😂 <b>Fun</b> — /joke /fact /quote /ship
       🖼 <b>Anime</b> — /neko /waifu /hug /pat ... 60+ GIFs
@@ -1229,7 +1239,8 @@ Until next time~ 🌙",
     ai_input    = "#{first_name}: #{cleaned}"
     raw         = get_ai_response(history_key, ai_input, chat_id)
 
-    text_part, _tag_executed = execute_agent_action(raw, chat_id, first_name, reply_to)
+    last_ai_text = HISTORY[history_key]&.select { |m| m['role'] == 'assistant' }&.last(2)&.first&.dig('content').to_s
+    text_part, _tag_executed = execute_agent_action(raw, chat_id, first_name, reply_to, { last_ai_text: last_ai_text })
 
 
 
@@ -1616,6 +1627,38 @@ Until next time~ 🌙",
       delete_message(chat_id, wait_msg_id) if wait_msg_id
       send_message(chat_id, "couldn't generate that image rn 😔 (#{e.message.split(':').last.strip})", reply_to)
       puts "⚠️  _run_imagine error: #{e.class} #{e.message}"
+    end
+  end
+
+  def self._run_tts(chat_id, text, reply_to)
+    if text.nil? || text.strip.empty?
+      send_message(chat_id, "give me some text to convert~ like: /tts hello world 🎙️", reply_to)
+      return
+    end
+
+    text    = text.strip
+    encoded = URI.encode_www_form_component(text)
+
+    send_chat_action(chat_id, 'upload_voice')
+
+    begin
+      api_uri  = URI("https://anya-apis.vercel.app/tts?text=#{encoded}")
+      response = Net::HTTP.get_response(api_uri)
+      data     = JSON.parse(response.body)
+
+      audio_url = data['url'].to_s
+
+      if audio_url.empty?
+        send_message(chat_id, "couldn't generate voice for that~ try again 😔", reply_to)
+        return
+      end
+
+      send_audio(chat_id, audio_url, '', reply_to)
+    rescue JSON::ParserError
+      send_message(chat_id, "tts api returned invalid data~ try again later!", reply_to)
+    rescue => e
+      puts "⚠️  _run_tts error: #{e.class} #{e.message}"
+      send_message(chat_id, "something went wrong with tts~ 😔", reply_to)
     end
   end
 
