@@ -757,6 +757,19 @@ Chiku.command '/insta', prefix: true do |params|
 end
 
 
+Chiku.command '/tts', prefix: true do |params|
+  text = params[:cleaned_text].sub(/^\/tts\s*/i, '').strip
+  if text.empty?
+    Chiku.send_message(
+      params[:chat_id],
+      "🎙️ <b>Usage:</b> <code>/tts &lt;text&gt;</code>\n\n✨ <b>Example:</b>\n• <code>/tts hello, how are you?</code>",
+      params[:reply_to_id]
+    )
+    next
+  end
+  Chiku._run_tts(params[:chat_id], text, params[:reply_to_id])
+end
+
 Chiku.command '/imagine', prefix: true do |params|
   prompt = params[:cleaned_text].sub(/^\/imagine\s*/i, '').strip
   if prompt.empty?
