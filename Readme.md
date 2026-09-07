@@ -1,7 +1,6 @@
 <p align="center">
   <img src="https://files.catbox.moe/1f6ks8.jpg" alt="Chiku Bot" width="250""/>
 </p>
-
 <h1 align="center">𝐂 𝚮 𝐈 𝐊 𝐔  𓆩 𔘓  𓆪 </h1>
 
 <p align="center">
