@@ -46,6 +46,29 @@ module ChikuDB
 
   def self.users_col = client[:users]
   def self.chats_col = client[:chats]
+  def self.locks_col = client[:locks]
+
+
+
+  # Atomically claims a one-time job key. Returns true the FIRST time a given
+  # key is claimed (i.e. the job is new and should run), and false on every
+  # subsequent call with the same key (i.e. it already ran / is a duplicate).
+  #
+  # Used to make things like /gcast idempotent: Telegram redelivers the same
+  # webhook update if it doesn't get a fast response, which — without this
+  # guard — caused commands to silently re-run from scratch on every retry.
+  def self.claim_job(key)
+    existing = locks_col.find_one_and_update(
+      { _id: key },
+      { '$setOnInsert' => { _id: key, claimed_at: Time.now.utc } },
+      upsert: true,
+      return_document: :before
+    )
+    existing.nil? # nil means no doc existed before -> we just created it -> new claim
+  rescue => e
+    puts "⚠️  ChikuDB.claim_job: #{e.message}"
+    true # fail-open: a DB hiccup shouldn't silently block a legit command
+  end
 
 
 
