@@ -295,13 +295,24 @@ Chiku.command '/gcast', prefix: true do |params|
     next
   end
 
-  reply_msg = params[:message]['reply_to_message']
-  cast_text = params[:cleaned_text].sub(/^\/gcast\s*/i, '').strip
+  reply_msg  = params[:message]['reply_to_message']
+  cast_text  = params[:cleaned_text].sub(/^\/gcast\s*/i, '').strip
+  message_id = params[:message]['message_id']
 
   if reply_msg.nil? && cast_text.empty?
     Chiku.send_message(params[:chat_id], "Usage: /gcast <message>  — or — reply to a message with /gcast", params[:reply_to_id])
     next
   end
+
+  # ── Idempotency guard ───────────────────────────────────────────────────
+  # If a broadcast takes longer than Telegram/Vercel's webhook timeout,
+  # Telegram redelivers the SAME update, and this command handler used to
+  # re-run the full send loop from zero on every redelivery — that's what
+  # made /gcast look "stuck" while it kept re-blasting the same message to
+  # everyone. claim_job() makes sure this exact message only ever triggers
+  # one broadcast, no matter how many times Telegram retries it.
+  gcast_key = "gcast_#{params[:chat_id]}_#{message_id}"
+  next unless ChikuDB.claim_job(gcast_key)
 
   all_ids = (ChikuDB.all_user_ids + ChikuDB.all_chat_ids).uniq
 
@@ -310,28 +321,64 @@ Chiku.command '/gcast', prefix: true do |params|
     next
   end
 
-  sent = 0; failed = 0
+  # Ack immediately so this command handler returns fast — the actual
+  # sending happens on a background thread below so a big broadcast can't
+  # block the webhook response or hold up the bot from handling other chats.
+  Chiku.send_message(
+    params[:chat_id],
+    "📢 Broadcast started in background for #{all_ids.length} chats~ I'll message you here when it's done.",
+    params[:reply_to_id]
+  )
 
-  all_ids.each do |target_id|
-    begin
-      if reply_msg
-        Chiku.tg_post('forwardMessage', {
-          'chat_id'      => target_id.to_s,
-          'from_chat_id' => params[:chat_id].to_s,
-          'message_id'   => reply_msg['message_id'].to_s
-        })
-      else
-        Chiku.send_message(target_id, cast_text)
+  Thread.new do
+    sent = 0
+    failed = 0
+    counter_lock = Mutex.new
+    queue = Queue.new
+    all_ids.each { |id| queue << id }
+
+    # A small worker pool instead of one sequential loop — fast enough to
+    # realistically finish before the serverless invocation gets frozen,
+    # instead of a single thread crawling through every user at 50ms each.
+    workers = Array.new(10) do
+      Thread.new do
+        loop do
+          target_id = begin
+            queue.pop(true)
+          rescue ThreadError
+            nil
+          end
+          break if target_id.nil?
+
+          begin
+            if reply_msg
+              Chiku.tg_post('forwardMessage', {
+                'chat_id'      => target_id.to_s,
+                'from_chat_id' => params[:chat_id].to_s,
+                'message_id'   => reply_msg['message_id'].to_s
+              })
+            else
+              Chiku.send_message(target_id, cast_text)
+            end
+            counter_lock.synchronize { sent += 1 }
+          rescue => e
+            counter_lock.synchronize { failed += 1 }
+            puts "⚠️  gcast failed for #{target_id}: #{e.message}"
+          end
+          sleep(0.03) # stay well under Telegram's rate limits
+        end
       end
-      sent += 1
-    rescue => e
-      failed += 1
-      puts "⚠️  gcast failed for #{target_id}: #{e.message}"
     end
-    sleep(0.05)
+    workers.each(&:join)
+
+    begin
+      Chiku.send_message(params[:chat_id], "📢 Broadcast done!\n✅ Sent: #{sent}\n❌ Failed: #{failed}", params[:reply_to_id])
+    rescue => e
+      puts "⚠️  gcast final report failed: #{e.message}"
+    end
   end
 
-  Chiku.send_message(params[:chat_id], "📢 Broadcast done!\n✅ Sent: #{sent}\n❌ Failed: #{failed}", params[:reply_to_id])
+  next
 end
 
 Chiku.command '/reactions' do |params|
